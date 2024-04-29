@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use chrono::DateTime;
+use chrono::Duration;
 use chrono::Local;
 use chrono::NaiveDateTime;
 use chrono::TimeZone;
@@ -11,7 +12,6 @@ use crate::conf;
 use crate::data::activity;
 use crate::data::processor::ListData;
 use crate::data::processor::ListWriter;
-use crate::view::format_util;
 
 pub struct Writer {}
 
@@ -48,12 +48,17 @@ pub fn list_activities(activities: &[&activity::Activity]) -> anyhow::Result<()>
 
 fn print_date(activity: &activity::Activity, last: Option<&activity::Activity>) {
     let new = match last {
-        Some(act) => act.start.date() == activity.start.date(),
+        Some(act) => act.start.date() != activity.start.date(),
         None => true,
     };
     if new {
         let style = Style::new().bold();
-        print!("\n{}{}{}\n", style.prefix().to_string(), activity.start.date(), style.infix(Style::new()).to_string());
+        print!(
+            "\n{}{}{}\n",
+            style.prefix().to_string(),
+            activity.start.date(),
+            style.infix(Style::new()).to_string()
+        );
     }
 }
 
@@ -63,7 +68,7 @@ fn print_row(activity: &activity::Activity) {
         activity.description,
         get_start_time(activity),
         get_stop_time(activity),
-        format_util::format_duration(&activity.get_duration())
+        format_duration(&activity.get_duration())
     )
 }
 
@@ -74,12 +79,29 @@ fn get_start_time(activity: &activity::Activity) -> String {
 fn get_stop_time(activity: &activity::Activity) -> String {
     return activity.end.map_or_else(
         || "-".to_string(),
-        |end| to_utc(end).format(conf::FORMAT_TIME).to_string(),
+        |end| {
+            to_utc(end)
+                .format(get_date_time_format(end.date() != activity.start.date()))
+                .to_string()
+        },
     );
+}
+
+fn get_date_time_format(date: bool) -> &'static str {
+    if date {
+        return conf::FORMAT_DATETIME;
+    }
+    conf::FORMAT_TIME
 }
 
 fn to_utc(time: NaiveDateTime) -> DateTime<Utc> {
     let local_dt: DateTime<Local> = Local.from_local_datetime(&time).unwrap();
     // let local_dt: DateTime<Local> = DateTime::from_utc(time, Local);
     return local_dt.with_timezone(&Utc);
+}
+
+fn format_duration(duration: &Duration) -> String {
+    let hours = duration.num_hours();
+    let minutes = duration.num_minutes() % 60;
+    format!("{:02}:{:02}", hours, minutes)
 }
