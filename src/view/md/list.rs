@@ -1,8 +1,11 @@
+use std::collections::HashSet;
+
 use chrono::DateTime;
 use chrono::Local;
 use chrono::NaiveDateTime;
 use chrono::TimeZone;
 use chrono::Utc;
+use nu_ansi_term::Style;
 
 use crate::conf;
 use crate::data::activity;
@@ -24,11 +27,34 @@ pub fn list_activities(activities: &[&activity::Activity]) -> anyhow::Result<()>
         return Ok(());
     }
 
+    let projects: HashSet<String> = activities
+        .iter()
+        .map(|&activity| activity.project.clone())
+        .collect();
+
+    if projects.len() != 1 {
+        return Err(anyhow::anyhow!("Several projects!"));
+    }
+
+    let mut last: Option<&activity::Activity> = None;
     for item in activities.iter() {
+        print_date(item, last);
         print_row(item);
+        last = Some(&item);
     }
 
     Ok(())
+}
+
+fn print_date(activity: &activity::Activity, last: Option<&activity::Activity>) {
+    let new = match last {
+        Some(act) => act.start.date() == activity.start.date(),
+        None => true,
+    };
+    if new {
+        let style = Style::new().bold();
+        print!("\n{}{}{}\n", style.prefix().to_string(), activity.start.date(), style.infix(Style::new()).to_string());
+    }
 }
 
 fn print_row(activity: &activity::Activity) {
