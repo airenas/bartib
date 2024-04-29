@@ -4,8 +4,23 @@ use std::collections::BTreeMap;
 
 use crate::conf;
 use crate::data::activity;
+use crate::data::processor::ListData;
+use crate::data::processor::ListWriter;
 use crate::view::format_util;
 use crate::view::table;
+
+pub struct Writer {}
+
+impl ListWriter for Writer {
+    fn process(&self, data: &ListData) -> anyhow::Result<()> {
+        if data.do_group_activities {
+            list_activities_grouped_by_date(&data.activities);
+        } else {
+            list_activities(&&data.activities, data.with_start_dates);
+        }
+        Ok(())
+    }
+}
 
 // displays a table with activities
 pub fn list_activities(activities: &[&activity::Activity], with_start_dates: bool) {

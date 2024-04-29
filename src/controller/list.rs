@@ -7,6 +7,7 @@ use crate::data::activity::Activity;
 use crate::data::bartib_file;
 use crate::data::getter;
 use crate::data::processor;
+use crate::data::processor::ListData;
 use crate::view::list;
 
 // lists all currently running activities.
@@ -27,6 +28,7 @@ pub fn list(
     filter: getter::ActivityFilter,
     do_group_activities: bool,
     processors: processor::ProcessorList,
+    writer: &dyn processor::ListWriter,
 ) -> Result<()> {
     let file_content = bartib_file::get_file_content(file_name)?;
     let activities = getter::get_activities(&file_content).collect();
@@ -45,14 +47,13 @@ pub fn list(
             .unwrap_or(filtered_activities.len()),
     );
 
-    if do_group_activities {
-        list::list_activities_grouped_by_date(&filtered_activities[first_element..]);
-    } else {
-        let with_start_dates = filter.date.is_none();
-        list::list_activities(&filtered_activities[first_element..], with_start_dates);
-    }
-
-    Ok(())
+    let with_start_dates = filter.date.is_none();
+    let data = ListData {
+        activities: filtered_activities[first_element..].to_vec(),
+        do_group_activities,
+        with_start_dates,
+    };
+    writer.process(&data)
 }
 
 // checks the file content for sanity

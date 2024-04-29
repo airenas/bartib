@@ -1,6 +1,8 @@
 use std::borrow::Borrow;
 
 use anyhow::{bail, Context, Result};
+use bartib::view::list::{self};
+use bartib::view::md;
 use bartib::view::status::StatusReport;
 use chrono::{Datelike, Duration, Local, NaiveDate, NaiveTime};
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches, SubCommand};
@@ -187,6 +189,14 @@ fn main() -> Result<()> {
                         .help("maximum number of activities to display")
                         .required(false)
                         .takes_value(true),
+                ).arg(
+                    Arg::with_name("format")
+                        .long("format")
+                        .value_name("FORMAT")
+                        .help("output format <table|md>, default table")
+                        .takes_value(true)
+                        .default_value("table")
+                        .required(false),
                 ),
         )
         .subcommand(
@@ -327,7 +337,14 @@ fn run_subcommand(matches: &ArgMatches, file_name: &str) -> Result<()> {
             let filter = create_filter_for_arguments(sub_m);
             let processors = create_processors_for_arguments(sub_m);
             let do_group_activities = !sub_m.is_present("no_grouping") && filter.date.is_none();
-            bartib::controller::list::list(file_name, filter, do_group_activities, processors)
+            let writer = create_list_writer(sub_m)?;
+            bartib::controller::list::list(
+                file_name,
+                filter,
+                do_group_activities,
+                processors,
+                writer.borrow(),
+            )
         }
         ("report", Some(sub_m)) => {
             let filter = create_filter_for_arguments(sub_m);
@@ -371,6 +388,19 @@ fn create_processors_for_arguments(sub_m: &ArgMatches) -> processor::ProcessorLi
 fn create_status_writer(_sub_m: &ArgMatches) -> Box<dyn processor::StatusReportWriter> {
     let result = StatusReport {};
     Box::new(result)
+}
+
+fn create_list_writer(sub_m: &ArgMatches) -> Result<Box<dyn processor::ListWriter>> {
+    let format = sub_m.value_of("format").context("format is required")?;
+    if format == "md" {
+        let result = md::list::Writer {};
+        return Ok(Box::new(result));
+    }
+    if format == "table" {
+        let result = list::Writer {};
+        return Ok(Box::new(result));
+    }
+    Err(anyhow::anyhow!("Unknown format {format}"))
 }
 
 fn create_filter_for_arguments<'a>(sub_m: &'a ArgMatches) -> ActivityFilter<'a> {
