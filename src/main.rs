@@ -2,8 +2,8 @@ use std::borrow::Borrow;
 
 use anyhow::{bail, Context, Result};
 use bartib::view::list::{self};
-use bartib::view::md;
 use bartib::view::status::StatusReport;
+use bartib::view::{md, report};
 use chrono::{Datelike, Duration, Local, NaiveDate, NaiveTime};
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches, SubCommand};
 
@@ -101,6 +101,13 @@ fn main() -> Result<()> {
         .value_name("PROJECT")
         .help("the project to which the new activity belongs")
         .takes_value(true);
+    let arg_format = Arg::with_name("format")
+        .long("format")
+        .value_name("FORMAT")
+        .help("output format <table|md>, default table")
+        .takes_value(true)
+        .default_value("table")
+        .required(false);
 
     let matches = App::new("bartib")
         .version(crate_version!())
@@ -189,15 +196,7 @@ fn main() -> Result<()> {
                         .help("maximum number of activities to display")
                         .required(false)
                         .takes_value(true),
-                ).arg(
-                    Arg::with_name("format")
-                        .long("format")
-                        .value_name("FORMAT")
-                        .help("output format <table|md>, default table")
-                        .takes_value(true)
-                        .default_value("table")
-                        .required(false),
-                ),
+                ).arg(&arg_format),
         )
         .subcommand(
             SubCommand::with_name("report")
@@ -218,7 +217,7 @@ fn main() -> Result<()> {
                         .help("do report activities for this project only")
                         .takes_value(true)
                         .required(false),
-                ),
+                ).arg(&arg_format),
         )
         .subcommand(
             SubCommand::with_name("last")
@@ -349,7 +348,8 @@ fn run_subcommand(matches: &ArgMatches, file_name: &str) -> Result<()> {
         ("report", Some(sub_m)) => {
             let filter = create_filter_for_arguments(sub_m);
             let processors = create_processors_for_arguments(sub_m);
-            bartib::controller::report::show_report(file_name, filter, processors)
+            let writer = create_report_writer(sub_m)?;
+            bartib::controller::report::show_report(file_name, filter, processors, writer.borrow())
         }
         ("projects", Some(sub_m)) => {
             bartib::controller::list::list_projects(file_name, sub_m.is_present("current"))
@@ -398,6 +398,19 @@ fn create_list_writer(sub_m: &ArgMatches) -> Result<Box<dyn processor::ListWrite
     }
     if format == "table" {
         let result = list::Writer {};
+        return Ok(Box::new(result));
+    }
+    Err(anyhow::anyhow!("Unknown format {format}"))
+}
+
+fn create_report_writer(sub_m: &ArgMatches) -> Result<Box<dyn processor::ReportWriter>> {
+    let format = sub_m.value_of("format").context("format is required")?;
+    if format == "md" {
+        let result = md::report::Writer {};
+        return Ok(Box::new(result));
+    }
+    if format == "table" {
+        let result = report::Writer {};
         return Ok(Box::new(result));
     }
     Err(anyhow::anyhow!("Unknown format {format}"))

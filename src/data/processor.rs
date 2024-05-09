@@ -31,6 +31,14 @@ pub trait ListWriter {
     fn process(&self, data: &ListData) -> Result<()>;
 }
 
+pub struct ReportData<'a> {
+    pub activities: Vec<&'a activity::Activity>,
+}
+
+pub trait ReportWriter {
+    fn process(&self, data: &ReportData) -> Result<()>;
+}
+
 pub struct RoundProcessor {
     pub round: Duration,
 }

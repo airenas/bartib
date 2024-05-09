@@ -9,7 +9,17 @@ use textwrap;
 
 use crate::conf;
 use crate::data::activity;
+use crate::data::processor::{ReportData, ReportWriter};
 use crate::view::format_util;
+
+pub struct Writer {}
+
+impl ReportWriter for Writer {
+    fn process(&self, data: &ReportData) -> anyhow::Result<()> {
+        show_activities(&data.activities);
+        Ok(())
+    }
+}
 
 type ProjectMap<'a> = BTreeMap<&'a str, (Vec<&'a activity::Activity>, Duration)>;
 

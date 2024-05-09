@@ -15,3 +15,9 @@ pub fn format_duration(duration: &Duration) -> String {
 
     duration_string
 }
+
+pub fn format_duration_hh_mm(duration: &Duration) -> String {
+    let hours = duration.num_hours();
+    let minutes = duration.num_minutes() % 60;
+    format!("{:02}:{:02}", hours, minutes)
+}

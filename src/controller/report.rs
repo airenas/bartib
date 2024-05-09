@@ -4,12 +4,13 @@ use crate::data::activity;
 use crate::data::bartib_file;
 use crate::data::getter;
 use crate::data::processor;
-use crate::view::report;
+use crate::data::processor::ReportData;
 
 pub fn show_report(
     file_name: &str,
     filter: getter::ActivityFilter,
     processors: processor::ProcessorList,
+    writer: &dyn processor::ReportWriter,
 ) -> Result<()> {
     let file_content = bartib_file::get_file_content(file_name)?;
     let activities = getter::get_activities(&file_content).collect();
@@ -29,7 +30,8 @@ pub fn show_report(
             .unwrap_or(filtered_activities.len()),
     );
 
-    report::show_activities(&filtered_activities[first_element..filtered_activities.len()]);
-
-    Ok(())
+    let data = ReportData {
+        activities: filtered_activities[first_element..filtered_activities.len()].to_vec(),
+    };
+    writer.process(&data)
 }

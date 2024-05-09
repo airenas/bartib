@@ -64,11 +64,11 @@ fn print_date(activity: &activity::Activity, last: Option<&activity::Activity>) 
 
 fn print_row(activity: &activity::Activity) {
     print!(
-        "| {} | {} | {} | {} |\n",
-        activity.description,
+        "{}, {}, {}, {}\n",
         get_start_time(activity),
         get_stop_time(activity),
-        format_duration(&activity.get_duration())
+        format_duration(&activity.get_duration()),
+        activity.description
     )
 }
 
