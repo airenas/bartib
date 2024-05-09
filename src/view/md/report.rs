@@ -19,18 +19,19 @@ type ProjectMap<'a> = BTreeMap<&'a str, (Vec<&'a activity::Activity>, Duration)>
 
 pub fn show_activities<'a>(activities: &'a [&'a activity::Activity]) -> anyhow::Result<()> {
     let total = sum_duration(activities);
-    print_bold(format!("Total: {}\n", format_duration_hh_mm(&total)).as_str());
+    print_bold(format!("### Total\n{}\n", format_duration_hh_mm(&total)).as_str());
 
     let project_map = create_project_map(activities);
     for (project, (activities, duration)) in &project_map {
         print!("\n\nProject ");
         print_bold(format!("{} {}\n\n", project, format_duration_hh_mm(&duration)).as_str());
 
+        print!("#### Duration - Issue title\n");
         let description_map = group_activities_by_description(activities);
         for (description, activities) in &description_map {
             let description_duration = sum_duration(activities);
             print!(
-                "{}, {}\n",
+                "- {} - {}\n",
                 format_duration_hh_mm(&description_duration),
                 description
             );
