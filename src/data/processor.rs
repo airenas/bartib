@@ -43,10 +43,29 @@ pub struct RoundProcessor {
     pub round: Duration,
 }
 
+pub struct ShiftProcessor {
+    pub shift: Duration,
+}
+
 impl ActivityProcessor for RoundProcessor {
     fn process(&self, activity: &activity::Activity) -> activity::Activity {
         let start = round_datetime(&activity.start, &self.round);
         let end = activity.end.map(|end| round_datetime(&end, &self.round));
+
+        activity::Activity {
+            start,
+            end,
+            project: activity.project.clone(),
+            description: activity.description.clone(),
+        }
+    }
+}
+
+
+impl ActivityProcessor for ShiftProcessor {
+    fn process(&self, activity: &activity::Activity) -> activity::Activity {
+        let start = activity.start + self.shift;
+        let end = activity.end.map(|end| end + self.shift);
 
         activity::Activity {
             start,

@@ -88,6 +88,12 @@ fn main() -> Result<()> {
         .required(false)
         .takes_value(true);
 
+    let arg_shift = Arg::with_name("shift")
+        .long("shift")
+        .help("shifts start and end time in the list using the duration. Durations can be in minutes or hours. E.g. 15m or -4h")
+        .required(false)
+        .takes_value(true);
+
     let arg_description = Arg::with_name("description")
         .short("d")
         .long("description")
@@ -174,6 +180,7 @@ fn main() -> Result<()> {
                 .arg(&arg_current_week)
                 .arg(&arg_last_week)
                 .arg(&arg_group)
+                .arg(&arg_shift)
                 .arg(
                     Arg::with_name("project")
                         .short("p")
@@ -209,6 +216,7 @@ fn main() -> Result<()> {
                 .arg(&arg_current_week)
                 .arg(&arg_last_week)
                 .arg(&arg_group)
+                .arg(&arg_shift)
                 .arg(
                     Arg::with_name("project")
                         .short("p")
@@ -380,6 +388,9 @@ fn create_processors_for_arguments(sub_m: &ArgMatches) -> processor::ProcessorLi
 
     if let Some(round) = get_duration_argument_or_ignore(sub_m.value_of("round"), "--round") {
         processors.push(Box::new(processor::RoundProcessor { round }));
+    }
+    if let Some(shift) = get_duration_argument_or_ignore(sub_m.value_of("shift"), "--shift") {
+        processors.push(Box::new(processor::ShiftProcessor { shift }));
     }
 
     processors
