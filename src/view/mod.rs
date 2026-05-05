@@ -4,3 +4,4 @@ pub mod md;
 pub mod report;
 pub mod status;
 pub mod table;
+pub mod one_line;

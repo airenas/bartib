@@ -22,6 +22,15 @@ impl ListWriter for Writer {
     }
 }
 
+pub struct CurrentWriter {}
+
+impl ListWriter for CurrentWriter {
+    fn process(&self, data: &ListData) -> anyhow::Result<()> {
+        list_running_activities(&data.activities);
+        Ok(())
+    }
+}
+
 // displays a table with activities
 pub fn list_activities(activities: &[&activity::Activity], with_start_dates: bool) {
     if activities.is_empty() {

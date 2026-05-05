@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use anyhow::{bail, Context, Result};
 use bartib::view::list::{self};
 use bartib::view::status::StatusReport;
-use bartib::view::{md, report};
+use bartib::view::{md, one_line, report};
 use chrono::{Datelike, Duration, Local, NaiveDate, NaiveTime};
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches, SubCommand};
 
@@ -110,7 +110,7 @@ fn main() -> Result<()> {
     let arg_format = Arg::with_name("format")
         .long("format")
         .value_name("FORMAT")
-        .help("output format <table|md>, default table")
+        .help("output format <table|md|one_line>, default table")
         .takes_value(true)
         .default_value("table")
         .required(false);
@@ -167,7 +167,7 @@ fn main() -> Result<()> {
             SubCommand::with_name("cancel").about("cancels all currently running activities"),
         )
         .subcommand(
-            SubCommand::with_name("current").about("lists all currently running activities"),
+            SubCommand::with_name("current").about("lists all currently running activities").arg(&arg_format),
         )
         .subcommand(
             SubCommand::with_name("list")
@@ -339,7 +339,10 @@ fn run_subcommand(matches: &ArgMatches, file_name: &str) -> Result<()> {
             bartib::controller::manipulation::stop(file_name, time)
         }
         ("cancel", Some(_)) => bartib::controller::manipulation::cancel(file_name),
-        ("current", Some(_)) => bartib::controller::list::list_running(file_name),
+        ("current", Some(sub_m)) => {
+            let writer = create_current_writer(sub_m)?;
+            bartib::controller::list::list_running(file_name, writer.borrow())
+        },
         ("list", Some(sub_m)) => {
             let filter = create_filter_for_arguments(sub_m);
             let processors = create_processors_for_arguments(sub_m);
@@ -413,6 +416,20 @@ fn create_list_writer(sub_m: &ArgMatches) -> Result<Box<dyn processor::ListWrite
     }
     Err(anyhow::anyhow!("Unknown format {format}"))
 }
+
+fn create_current_writer(sub_m: &ArgMatches) -> Result<Box<dyn processor::ListWriter>> {
+    let format = sub_m.value_of("format").context("format is required")?;
+    if format == "table" {
+        let result = list::CurrentWriter {};
+        return Ok(Box::new(result));
+    }
+    if format == "one_line" {
+        let result = one_line::list::Writer {};
+        return Ok(Box::new(result));
+    }
+    Err(anyhow::anyhow!("Unknown format {format}"))
+}
+
 
 fn create_report_writer(sub_m: &ArgMatches) -> Result<Box<dyn processor::ReportWriter>> {
     let format = sub_m.value_of("format").context("format is required")?;

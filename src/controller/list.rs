@@ -11,12 +11,14 @@ use crate::data::processor::ListData;
 use crate::view::list;
 
 // lists all currently running activities.
-pub fn list_running(file_name: &str) -> Result<()> {
+pub fn list_running(file_name: &str, writer: &dyn processor::ListWriter) -> Result<()> {
     let file_content = bartib_file::get_file_content(file_name)?;
     let running_activities = getter::get_running_activities(&file_content);
-
-    list::list_running_activities(&running_activities);
-
+    writer.process(&ListData {
+        activities: running_activities,
+        do_group_activities: false,
+        with_start_dates: false,
+    })?;
     Ok(())
 }
 
